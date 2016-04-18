@@ -1,0 +1,27 @@
+{
+  "name": "buddyparse",
+  "version": "1.0.0",
+  "description": "Buddy Parse CLI",
+  "preferGlobal": true,
+  "bin": {
+    "buddyparse": "index.js"
+  },
+  "dependencies": {
+    "adm-zip": "~0.4.7",
+    "async": "~2.0.0-rc.3",
+    "azure-storage": "~0.10.0",
+    "command-line-args": "~2.1.6",
+    "concat-stream": "~1.5.1",
+    "file-type": "~3.8.0",
+    "lodash": "~4.10.0",
+    "mime-types": "~2.1.10",
+    "read-chunk": "~1.0.1",
+    "request": "~2.71.0",
+    "validator": "~5.2.0",
+    "walk": "~2.3.9"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "author": "Buddy Platform",
+  "license": "Apache-2.0"
+}
