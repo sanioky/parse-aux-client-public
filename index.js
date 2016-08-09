@@ -18,10 +18,9 @@ const _ = require("lodash");
 const azure = require("azure-storage");
 const request = require("request");
 
-const aux = "https://aux.parse.buddy.com/";
+const aux = process.env["BUDDY_PARSE_AUX_URL"] || "https://parse.buddy.com/";
 
-// Delete this when the certificate is arranged!
-const agent = new https.Agent({ rejectUnauthorized: false });
+const pkginfo = require("pkginfo")(module);
 
 function listBlobs(service, container, listing, continuationToken, callback) {
   service.listBlobsSegmented(container, continuationToken, null, function(error, result, response) {
@@ -45,7 +44,7 @@ function list(appID, secret, callback) {
   var listing = [];
 
   request.get(aux + "hosting",
-    { json: true, agent: agent, auth: { user: appID, password: secret } }, function(error, response, body) {
+    { json: true, auth: { user: appID, password: secret } }, function(error, response, body) {
       if (error !== null) {
         callback(error);
       } else {
@@ -60,12 +59,12 @@ function getCurrentVersion(appID, secret, callback) {
   console.log("Fetching current version...");
 
   request.get(aux + "app/current",
-    { agent: agent, auth: { user: appID, password: secret } }, callback);
+    { auth: { user: appID, password: secret } }, callback);
 }
 
 function uploadFile(appID, secret, hash, filename, callback) {
   request.post(aux + "hosting/" + hash,
-    { json: true, agent: agent, auth: { user: appID, password: secret } }, function(error, response, body) {
+    { json: true, auth: { user: appID, password: secret } }, function(error, response, body) {
       if (error !== null) {
         callback(error);
       } else {
@@ -103,14 +102,14 @@ function uploadMapping(appID, secret, version, mapping, callback) {
   });
 
   request.post(aux + "app/map/" + version,
-    { json: true, agent: agent, auth: { user: appID, password: secret }, body: mapping }, callback);
+    { json: true, auth: { user: appID, password: secret }, body: mapping }, callback);
 }
 
 function setVersion(appID, secret, version, callback) {
   console.log("Setting active version...");
 
   request.post(aux + "app/current",
-    { json: true, agent: agent, auth: { user: appID, password: secret }, body: { version: version } }, callback);
+    { json: true, auth: { user: appID, password: secret }, body: { version: version } }, callback);
 }
 
 function uploadCloudCode(appID, secret, version, callback) {
@@ -121,7 +120,7 @@ function uploadCloudCode(appID, secret, version, callback) {
   const zipBuffer = zipFile.toBuffer();
 
   request.post(aux + "app/cloudcode/" + version + ".zip",
-    { agent: agent, auth: { user: appID, password: secret }, body: zipBuffer }, callback);
+    { auth: { user: appID, password: secret }, body: zipBuffer }, callback);
 }
 
 function hashWalk(directory, callback) {
@@ -221,7 +220,21 @@ function listVersions(appID, secret, callback) {
   console.log("Listing application versions...");
 
   request.get(aux + "app/versions",
-    { json: true, agent: agent, auth: { user: appID, password: secret } }, callback);
+    { json: true, auth: { user: appID, password: secret } }, callback);
+}
+
+function uploadPushCert(appID, secret, file, callback) {
+  fs.readFile(file, function(error, data) {
+    if (error) {
+      callback(error);
+    } else {
+      request.put(aux + "app/ios.p12", {
+        body: data,
+        headers: { "content-type": "application/x-pkcs12" },
+        auth: { user: appID, password: secret },
+      }, callback);
+    }
+  });
 }
 
 function printStatus(selection) {
@@ -239,10 +252,12 @@ function printStatus(selection) {
 }
 
 const cli = commandLineArgs([
+  { name: "version", alias: "V", type: Boolean },
   { name: "listVersions", alias: "l", type: Boolean },
   { name: "createVersion", alias: "c", type: Number, multiple: false },
   { name: "activateVersion", alias: "a", type: Number, multiple: false },
-  { name: "currentVersion", alias: "v", type: Boolean }
+  { name: "currentVersion", alias: "v", type: Boolean },
+  { name: "uploadPushCert", alias: "u", type: String, multiple: false }
 ]);
 
 var options = cli.parse()
@@ -252,7 +267,7 @@ if (_.keys(options).length == 0) {
   process.exit(1);
 }
 
-if (!(("BUDDY_PARSE_APP_ID" in process.env) && ("BUDDY_PARSE_MASTER_KEY" in process.env))) {
+if (!("version" in options) && (!(("BUDDY_PARSE_APP_ID" in process.env) && ("BUDDY_PARSE_MASTER_KEY" in process.env)))) {
   console.log("Required environment variables: BUDDY_PARSE_APP_ID, BUDDY_PARSE_MASTER_KEY");
   process.exit(1);
 }
@@ -263,7 +278,7 @@ const requirements = [
   fs.existsSync("cloud/main.js") && fs.statSync("cloud/main.js").isFile()
 ]
 
-if (_.includes(requirements, false)) {
+if (_.includes(requirements, false) && ("createVersion" in options)) {
   console.log("Required directories: cloud, public");
   console.log("The cloud directory must contain a main.js cloud code file.");
   process.exit(1);
@@ -274,9 +289,15 @@ config = {
   secret: process.env.BUDDY_PARSE_MASTER_KEY
 }
 
-if ("listVersions" in options) {
+if ("version" in options) {
+  console.log(`${module.exports.description} ${module.exports.version}`);
+} else if ("uploadPushCert" in options) {
+  uploadPushCert(config.appID, config.secret, options.uploadPushCert, printStatus(function(r) {
+    return r.statusCode;
+  }));
+} else if ("listVersions" in options) {
   listVersions(config.appID, config.secret, printStatus(function(r) {
-    return r.body.versions.sort();
+    return r.body.versions.sort((a, b) => a - b).join(" ");
   }));
 } else if ("createVersion" in options) {
   if (options.createVersion === null) {
