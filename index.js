@@ -223,20 +223,6 @@ function listVersions(appID, secret, callback) {
     { json: true, auth: { user: appID, password: secret } }, callback);
 }
 
-function uploadPushCert(appID, secret, file, callback) {
-  fs.readFile(file, function(error, data) {
-    if (error) {
-      callback(error);
-    } else {
-      request.put(aux + "app/ios.p12", {
-        body: data,
-        headers: { "content-type": "application/x-pkcs12" },
-        auth: { user: appID, password: secret },
-      }, callback);
-    }
-  });
-}
-
 function printStatus(selection) {
   return function(error, response) {
     if (error !== null) {
@@ -256,8 +242,7 @@ const cli = commandLineArgs([
   { name: "listVersions", alias: "l", type: Boolean },
   { name: "createVersion", alias: "c", type: Number, multiple: false },
   { name: "activateVersion", alias: "a", type: Number, multiple: false },
-  { name: "currentVersion", alias: "v", type: Boolean },
-  { name: "uploadPushCert", alias: "u", type: String, multiple: false }
+  { name: "currentVersion", alias: "v", type: Boolean }
 ]);
 
 var options = cli.parse()
@@ -291,10 +276,6 @@ config = {
 
 if ("version" in options) {
   console.log(`${module.exports.description} ${module.exports.version}`);
-} else if ("uploadPushCert" in options) {
-  uploadPushCert(config.appID, config.secret, options.uploadPushCert, printStatus(function(r) {
-    return r.statusCode;
-  }));
 } else if ("listVersions" in options) {
   listVersions(config.appID, config.secret, printStatus(function(r) {
     return r.body.versions.sort((a, b) => a - b).join(" ");
