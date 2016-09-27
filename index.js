@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const zlib = require("zlib");
 const util = require("util");
 const walk = require("walk");
-const zip = require("adm-zip");
+const zip = require("archiver");
 const concat = require("concat-stream");
 const async = require("async");
 const mime = require("mime-types");
@@ -115,12 +115,17 @@ function setVersion(appID, secret, version, callback) {
 function uploadCloudCode(appID, secret, version, callback) {
   console.log("Uploading cloud code...");
 
-  const zipFile = new zip();
-  zipFile.addLocalFolder("cloud");
-  const zipBuffer = zipFile.toBuffer();
+  const zipFile = zip.create("zip", {});
 
-  request.post(aux + "app/cloudcode/" + version + ".zip",
-    { auth: { user: appID, password: secret }, body: zipBuffer }, callback);
+  zipFile.on("error", function(error) { callback(error); });
+
+  zipFile.on("finish", function() {
+    zipFile.pipe(request.post(aux + "app/cloudcode/" + version + ".zip",
+      { auth: { user: appID, password: secret } }, callback));
+  });
+
+  zipFile.directory("cloud", "/");
+  zipFile.finalize();
 }
 
 function hashWalk(directory, callback) {
