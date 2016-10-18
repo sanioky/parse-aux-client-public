@@ -22,6 +22,13 @@ const aux = process.env["BUDDY_PARSE_AUX_URL"] || "https://parse.buddy.com/";
 
 const pkginfo = require("pkginfo")(module);
 
+function parseHeaders(appID, secret) {
+  return {
+    "x-parse-application-id": appID,
+    "x-parse-master-key": secret
+  };
+}
+
 function listBlobs(service, container, listing, continuationToken, callback) {
   service.listBlobsSegmented(container, continuationToken, null, function(error, result, response) {
     if (error) {
@@ -44,7 +51,7 @@ function list(appID, secret, callback) {
   var listing = [];
 
   request.get(aux + "hosting",
-    { json: true, auth: { user: appID, password: secret } }, function(error, response, body) {
+    { json: true, headers: parseHeaders(appID, secret), auth: { user: appID, password: secret } }, function(error, response, body) {
       if (error !== null) {
         callback(error);
       } else {
@@ -59,12 +66,12 @@ function getCurrentVersion(appID, secret, callback) {
   console.log("Fetching current version...");
 
   request.get(aux + "app/current",
-    { auth: { user: appID, password: secret } }, callback);
+    { headers: parseHeaders(appID, secret), auth: { user: appID, password: secret } }, callback);
 }
 
 function uploadFile(appID, secret, hash, filename, callback) {
   request.post(aux + "hosting/" + hash,
-    { json: true, auth: { user: appID, password: secret } }, function(error, response, body) {
+    { json: true, headers: parseHeaders(appID, secret), auth: { user: appID, password: secret } }, function(error, response, body) {
       if (error !== null) {
         callback(error);
       } else {
@@ -102,14 +109,14 @@ function uploadMapping(appID, secret, version, mapping, callback) {
   });
 
   request.post(aux + "app/map/" + version,
-    { json: true, auth: { user: appID, password: secret }, body: mapping }, callback);
+    { json: true, headers: parseHeaders(appID, secret), auth: { user: appID, password: secret }, body: mapping }, callback);
 }
 
 function setVersion(appID, secret, version, callback) {
   console.log("Setting active version...");
 
   request.post(aux + "app/current",
-    { json: true, auth: { user: appID, password: secret }, body: { version: version } }, callback);
+    { json: true, headers: parseHeaders(appID, secret), auth: { user: appID, password: secret }, body: { version: version } }, callback);
 }
 
 function uploadCloudCode(appID, secret, version, callback) {
@@ -121,7 +128,7 @@ function uploadCloudCode(appID, secret, version, callback) {
 
   zipFile.on("finish", function() {
     zipFile.pipe(request.post(aux + "app/cloudcode/" + version + ".zip",
-      { auth: { user: appID, password: secret } }, callback));
+      { headers: parseHeaders(appID, secret), auth: { user: appID, password: secret } }, callback));
   });
 
   zipFile.directory("cloud", "/");
@@ -225,7 +232,7 @@ function listVersions(appID, secret, callback) {
   console.log("Listing application versions...");
 
   request.get(aux + "app/versions",
-    { json: true, auth: { user: appID, password: secret } }, callback);
+    { json: true, headers: parseHeaders(appID, secret), auth: { user: appID, password: secret } }, callback);
 }
 
 function printStatus(selection) {
