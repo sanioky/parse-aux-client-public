@@ -42,6 +42,15 @@ A combined set of cloud code and static files is called a version. Using the too
 
 As with the old Parse.com service, you can only upload a single .js file, named `main.js`. Any dependencies need to be manually copy/pasted into that .js file. We are working to lift that limitation.
 
+### Web Hosting
+
+All the files in the `public` directory are publically available at the URLs that are of the following format: `https://parse.buddy.com/public/{app ID}/{directory structure}/{file}`. Using the above directory structure example, and a sample app ID of 98d29ee6-0b40-4296-9665-10d36b9ae0ad, the resulting URL would be `https://parse.buddy.com/public/98d29ee6-0b40-4296-9665-10d36b9ae0ad/sample.txt`.
+
+
+### Caveats
+
+There are some incompatibilities with the old Parse.com cloud code service. They are detailed [here](https://github.com/ParsePlatform/Parse-Server/wiki/Compatibility-with-Hosted-Parse#Cloud-Code).
+
 ## Use
 
 For help, run without arguments:
@@ -130,7 +139,7 @@ $ buddyparse -v
 Fetching current version...
 2
 
-$ curl http://example-app.parse-static.buddy.com/data/foo.txt
+$ curl http://parse.buddy.com/public/{app ID}/foo.txt
 test1
 ```
 
