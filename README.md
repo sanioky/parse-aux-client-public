@@ -1,41 +1,82 @@
-# parse-aux-client
-Node.js CLI client for the Parse Aux REST service.
+# Parse on Buddy Cloud Code/Web Hosting Command Line Tool
 
-For help, run without arguments:
+This tool allows you to upload your Parse cloud code and static files for hosting to the Parse on Buddy service. It also allows you to manage different versions of cloud code/static files.
 
-```
-$ buddyparse 
+## Prerequisites
 
-Options
+This tool depends on NPM, the Node Package Manager distributed with [Node.js](https://nodejs.org). Node.js/NPM installation instructions are [here](https://docs.npmjs.com/getting-started/installing-node).
 
-  -l, --listVersions              
-  -c, --createVersion number      
-  -a, --activateVersion number    
-  -v, --currentVersion            
-```
-
-Environment variable requirements:
+The tool depends on the following environment variables. Please set them appropriately in your environment before using the tool:
 
 - `BUDDY_PARSE_APP_ID`
 - `BUDDY_PARSE_MASTER_KEY`
 
-You can then list, create, activate (i.e. switch/rollback) versions. For example, walking through some commands starting from scratch:
+## Installation
+
+Open a command shell, and type `npm install -g BuddyPlatform/parse-aux-client`.
+
+## Overview
+
+### Directory Structure
+
+Cloud code needs to live in a single .js file named `main.js`, and it needs to be in a directory named `cloud`. Static files need to be in a sibling directory named `public`. Here is the required directory structure:
+
+```
+.
++-- cloud
+|   +-- main.js
++-- public
+|   +-- sample.txt
+|   +-- etc.
+```
+
+The `public` directory is required even if you have no static files to upload; it can remain empty.
+
+You invoke the tool from the root of the directory structure, that is the parent directory of `cloud` and `public`.
+
+### Versions
+
+A combined set of cloud code and static files is called a version. Using the tool you upload each version to Parse on Buddy. The latest version becomes active. You can also activate older versions using the tool.
+
+### JavaScript Dependencies
+
+As with the old Parse.com service, you can only upload a single .js file, named `main.js`. Any dependencies need to be manually copy/pasted into that .js file. We are working to lift that limitation.
+
+## Use
+
+For help, run without arguments:
+
+```
+$ buddyparse
+
+Options
+
+  -l, --listVersions
+  -c, --createVersion number
+  -a, --activateVersion number
+  -v, --currentVersion
+```
+
+Here is an example walkthrough:
 
 ```
 $ mkdir ExampleParseApp
 
-$ cd ExampleParseApp 
+$ cd ExampleParseApp
 
 $ mkdir public cloud
 
 $ cat > cloud/main.js
 console.log("Hello!");
 
-$ env BUDDY_PARSE_APP_ID=example-app BUDDY_PARSE_MASTER_KEY=test123 buddyparse -l
+$ cd ..
+
+// There are no versions because no upload has yet occurred
+$ buddyparse -l
 Listing application versions...
 []
 
-$ env BUDDY_PARSE_APP_ID=example-app BUDDY_PARSE_MASTER_KEY=test123 buddyparse -c 1
+$ buddyparse -c 1
 Walking local public directory subtree...
 Listing existing hash blobs...
 0 public assets already synchronized!
@@ -44,51 +85,61 @@ Uploading name → hash mapping...
 Setting active version...
 All done!
 
-$ env BUDDY_PARSE_APP_ID=example-app BUDDY_PARSE_MASTER_KEY=test123 buddyparse -l  
+$ buddyparse -l
 Listing application versions...
 [ 1 ]
 
-$ env BUDDY_PARSE_APP_ID=example-app BUDDY_PARSE_MASTER_KEY=test123 buddyparse -v
+$ buddyparse -v
 Fetching current version...
 1
 
-$ date > public/foo.txt
+$ echo "test 1" > public/foo.txt
 
-$ env BUDDY_PARSE_APP_ID=example-app BUDDY_PARSE_MASTER_KEY=test123 buddyparse -c 2
+$ buddyparse -c 2
 Walking local public directory subtree...
 Listing existing hash blobs...
-Uploading 1 (of 1) public asset(s)...
+1 public assets already synchronized!
 Uploading cloud code...
 Uploading name → hash mapping...
 Setting active version...
 All done!
 
-$ date > public/bar.txt                                                            
+$ date > public/bar.txt
 
-$ cat > cloud/main.js 
+$ cat > cloud/main.js
 console.log("And now for something completely different.");
 
-$ env BUDDY_PARSE_APP_ID=example-app BUDDY_PARSE_MASTER_KEY=test123 buddyparse -c 3
+$ buddyparse -c 3
 Walking local public directory subtree...
 Listing existing hash blobs...
-Uploading 1 (of 2) public asset(s)...
+1 public assets already synchronized!
 Uploading cloud code...
 Uploading name → hash mapping...
 Setting active version...
 All done!
 
-$ env BUDDY_PARSE_APP_ID=example-app BUDDY_PARSE_MASTER_KEY=test123 buddyparse -v  
+$ buddyparse -v
 Fetching current version...
 3
 
-$ env BUDDY_PARSE_APP_ID=example-app BUDDY_PARSE_MASTER_KEY=test123 buddyparse -a 2
+$ buddyparse -a 2
 Setting active version...
 done
 
-$ env BUDDY_PARSE_APP_ID=example-app BUDDY_PARSE_MASTER_KEY=test123 buddyparse -v  
+$ buddyparse -v
 Fetching current version...
 2
 
-$ curl http://example-app.parse-static.buddy.com/data/foo.txt 
-Tue 19 Apr 2016 02:36:34 ACST
+$ curl http://example-app.parse-static.buddy.com/data/foo.txt
+test1
 ```
+
+## FAQ
+
+Q. Why do I need a public directory, even if I'm not using web hosting?
+
+A. Due to legacy reasons, an empty `public` directory is necessary.
+
+Q. On MacOS I am getting errors after uploading my cloud code.
+
+A. MacOS creates invisible files named `.DS_Store` when folders are opened in the Finder. These files must be deleted from the directory structure.
